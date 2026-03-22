@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BrandPulse — MVP Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg1: #ffffff; --bg2: #f5f5f3; --bg3: #eeede8;
+    --t1: #1a1a18; --t2: #6b6b68;
+    --border: rgba(0,0,0,0.12); --border-md: rgba(0,0,0,0.2);
+    --r-md: 8px; --r-lg: 12px;
+    --font: -apple-system,'Helvetica Neue',sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg1: #1e1e1c; --bg2: #282825; --bg3: #141412;
+      --t1: #f0efea; --t2: #9a9a96;
+      --border: rgba(255,255,255,0.1); --border-md: rgba(255,255,255,0.18);
+    }
+  }
+  body { font-family: var(--font); background: var(--bg3); color: var(--t1); min-height: 100vh; }
+  .app { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .logo { font-size: 20px; font-weight: 500; letter-spacing: -0.5px; color: var(--t1); }
+  .logo span { color: #1D9E75; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #E1F5EE; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #0F6E56; }
+  .week { font-size: 13px; color: var(--t2); }
+  .user-row { display: flex; align-items: center; gap: 10px; }
+  .nav { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); }
+  .nav-item { padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--t2); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; user-select: none; }
+  .nav-item.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 500; }
+  .nav-item:hover:not(.active) { color: var(--t1); }
+  .view { display: none; }
+  .view.active { display: block; }
+  .nudges { background: #E1F5EE; border: 0.5px solid #9FE1CB; border-radius: var(--r-lg); padding: 12px 16px; margin-bottom: 1.25rem; }
+  .nudges-label { font-size: 11px; font-weight: 500; color: #0F6E56; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+  .nudge { font-size: 13px; color: #085041; padding: 4px 0; display: flex; align-items: flex-start; gap: 8px; }
+  .ndot { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; margin-top: 5px; flex-shrink: 0; }
+  .g4 { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: var(--bg2); border-radius: var(--r-md); padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: var(--t2); margin-bottom: 6px; }
+  .metric-val { font-size: 22px; font-weight: 500; color: var(--t1); }
+  .metric-delta { font-size: 12px; margin-top: 4px; }
+  .up { color: #1D9E75; } .dn { color: #A32D2D; }
+  .g2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  .card { background: var(--bg1); border: 0.5px solid var(--border); border-radius: var(--r-lg); padding: 16px; }
+  .card-title { font-size: 14px; font-weight: 500; color: var(--t1); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .card-sub { font-size: 12px; color: var(--t2); font-weight: 400; }
+  .tr { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .tr:last-child { border-bottom: none; }
+  .tr-rank { font-size: 12px; color: var(--t2); width: 18px; }
+  .tr-info { flex: 1; }
+  .tr-name { font-size: 13px; font-weight: 500; color: var(--t1); }
+  .tr-cat { font-size: 11px; color: var(--t2); }
+  .bar-wrap { width: 80px; height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; }
+  .bar { height: 100%; border-radius: 3px; background: #1D9E75; }
+  .tr-score { font-size: 12px; font-weight: 500; color: var(--t1); width: 28px; text-align: right; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 500; }
+  .b-rising { background: #E1F5EE; color: #0F6E56; }
+  .b-peak { background: #FAEEDA; color: #854F0B; }
+  .b-new { background: #E6F1FB; color: #185FA5; }
+  .br { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .br:last-child { border-bottom: none; }
+  .bdot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .bname { flex: 1; color: var(--t1); font-weight: 500; }
+  .bname.you { color: #1D9E75; }
+  .bsov { width: 60px; text-align: right; color: var(--t2); font-size: 12px; }
+  .bsent { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+  .s-pos { background: #E1F5EE; color: #085041; }
+  .s-neu { background: var(--bg2); color: var(--t2); }
+  .s-neg { background: #FCEBEB; color: #791F1F; }
+  .di { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .di:last-child { border-bottom: none; }
+  .di-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+  .di-type { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 4px; }
+  .dt-trend { background: #E1F5EE; color: #0F6E56; }
+  .dt-comp { background: #FAEEDA; color: #854F0B; }
+  .dt-cons { background: #E6F1FB; color: #185FA5; }
+  .dt-risk { background: #FCEBEB; color: #791F1F; }
+  .di-time { font-size: 11px; color: var(--t2); }
+  .di-text { font-size: 13px; color: var(--t1); line-height: 1.5; }
+  .opp-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+  .opp { border-radius: var(--r-md); padding: 12px; border: 0.5px solid var(--border); position: relative; }
+  .opp.hot { background: #E1F5EE; border-color: #9FE1CB; }
+  .opp.warm { background: #FAEEDA; border-color: #FAC775; }
+  .opp.cold { background: var(--bg2); }
+  .opp-label { font-size: 12px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+  .opp-demand { font-size: 11px; color: var(--t2); }
+  .opp.hot .opp-label { color: #085041; }
+  .opp.hot .opp-demand { color: #0F6E56; }
+  .opp.warm .opp-label { color: #633806; }
+  .opp.warm .opp-demand { color: #854F0B; }
+  .opp-badge { font-size: 10px; position: absolute; top: 8px; right: 8px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+  .ob-h { background: #1D9E75; color: white; }
+  .ob-m { background: #EF9F27; color: white; }
+  .ob-l { background: var(--border); color: var(--t2); }
+  .chart-wrap { position: relative; height: 160px; margin-top: 8px; }
+  svg.spark { width: 100%; height: 100%; }
+  .sc4 { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+  .sc-item { text-align: center; padding: 10px 8px; background: var(--bg2); border-radius: var(--r-md); }
+  .sc-brand { font-size: 11px; color: var(--t2); margin-bottom: 4px; }
+  .sc-val { font-size: 18px; font-weight: 500; }
+  .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fbtn { font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 0.5px solid var(--border-md); background: transparent; cursor: pointer; color: var(--t2); transition: all 0.15s; }
+  .fbtn.on { background: #1D9E75; color: white; border-color: #1D9E75; }
+  .ask-row { text-align: center; padding: 10px 0; margin-top: 4px; }
+  .ask-btn { display: inline-block; font-size: 13px; padding: 9px 20px; border-radius: var(--r-md); border: 0.5px solid var(--border-md); background: transparent; cursor: pointer; color: var(--t1); text-decoration: none; transition: background 0.15s; font-family: var(--font); }
+  .ask-btn:hover { background: var(--bg2); }
+  @media (max-width: 600px) {
+    .g4 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .g2 { grid-template-columns: 1fr; }
+    .opp-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .sc4 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">Brand<span>Pulse</span></div>
+    <div class="user-row">
+      <div class="week">Week of Mar 17, 2026</div>
+      <div class="avatar">PR</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-item active" onclick="switchTab('overview')">Overview</div>
+    <div class="nav-item" onclick="switchTab('trends')">Trend Radar</div>
+    <div class="nav-item" onclick="switchTab('competitors')">Brand Health</div>
+    <div class="nav-item" onclick="switchTab('whitespace')">Whitespace</div>
+    <div class="nav-item" onclick="switchTab('digest')">Weekly Digest</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="view active">
+    <div class="nudges">
+      <div class="nudges-label">This week's decision nudges</div>
+      <div class="nudge"><div class="ndot"></div>"Gut health" is up 34% in your category — no competitor has launched in this space yet.</div>
+      <div class="nudge"><div class="ndot"></div>NatureFresh gained 4pts share of voice in skincare this week. Monitor closely.</div>
+      <div class="nudge"><div class="ndot"></div>"Travel-size" searches spiked 2.1× in the 18–28 age group. Packaging opportunity.</div>
+    </div>
+    <div class="g4">
+      <div class="metric"><div class="metric-label">Trend signals</div><div class="metric-val">12</div><div class="metric-delta up">+3 vs last week</div></div>
+      <div class="metric"><div class="metric-label">Brand sentiment</div><div class="metric-val">74%</div><div class="metric-delta up">+2pts</div></div>
+      <div class="metric"><div class="metric-label">Share of voice</div><div class="metric-val">28%</div><div class="metric-delta dn">−1pt vs last week</div></div>
+      <div class="metric"><div class="metric-label">Whitespace gaps</div><div class="metric-val">5</div><div class="metric-delta up">2 high priority</div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Top rising trends <span class="card-sub">Personal Care · This week</span></div>
+        <div class="tr"><div class="tr-rank">1</div><div class="tr-info"><div class="tr-name">Gut health</div><div class="tr-cat">Wellness · Food &amp; Skin</div></div><div class="bar-wrap"><div class="bar" style="width:92%"></div></div><div class="tr-score">92</div><div class="badge b-rising">Rising</div></div>
+        <div class="tr"><div class="tr-rank">2</div><div class="tr-info"><div class="tr-name">Clean label</div><div class="tr-cat">Ingredients</div></div><div class="bar-wrap"><div class="bar" style="width:78%"></div></div><div class="tr-score">78</div><div class="badge b-peak">Peaking</div></div>
+        <div class="tr"><div class="tr-rank">3</div><div class="tr-info"><div class="tr-name">Travel-size</div><div class="tr-cat">Packaging</div></div><div class="bar-wrap"><div class="bar" style="width:65%"></div></div><div class="tr-score">65</div><div class="badge b-new">New</div></div>
+        <div class="tr"><div class="tr-rank">4</div><div class="tr-info"><div class="tr-name">Microbiome care</div><div class="tr-cat">Wellness</div></div><div class="bar-wrap"><div class="bar" style="width:58%"></div></div><div class="tr-score">58</div><div class="badge b-rising">Rising</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Brand vs. competitors <span class="card-sub">Share of voice</span></div>
+        <div class="br"><div class="bdot" style="background:#1D9E75"></div><div class="bname you">Natura (your brand)</div><div class="bsov">28%</div><div class="bsent s-pos">Positive</div></div>
+        <div class="br"><div class="bdot" style="background:#378ADD"></div><div class="bname">NatureFresh</div><div class="bsov">32%</div><div class="bsent s-pos">Positive</div></div>
+        <div class="br"><div class="bdot" style="background:#EF9F27"></div><div class="bname">Glow &amp; Co</div><div class="bsov">21%</div><div class="bsent s-neu">Neutral</div></div>
+        <div class="br"><div class="bdot" style="background:#E24B4A"></div><div class="bname">PureEarth</div><div class="bsov">19%</div><div class="bsent s-neg">Mixed</div></div>
+        <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
+          <div style="font-size:12px;color:var(--t2);margin-bottom:8px;">Sentiment score this week</div>
+          <div class="sc4">
+            <div class="sc-item"><div class="sc-brand">Natura</div><div class="sc-val" style="color:#1D9E75">74</div></div>
+            <div class="sc-item"><div class="sc-brand">NatureFresh</div><div class="sc-val" style="color:#378ADD">81</div></div>
+            <div class="sc-item"><div class="sc-brand">Glow &amp; Co</div><div class="sc-val">68</div></div>
+            <div class="sc-item"><div class="sc-brand">PureEarth</div><div class="sc-val" style="color:#E24B4A">52</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDS -->
+  <div id="tab-trends" class="view">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Trend Radar <span class="card-sub">Filter by category</span></div>
+      <div class="filter-row">
+        <button class="fbtn on" onclick="filterTrend(this,'all')">All</button>
+        <button class="fbtn" onclick="filterTrend(this,'wellness')">Wellness</button>
+        <button class="fbtn" onclick="filterTrend(this,'ingredients')">Ingredients</button>
+        <button class="fbtn" onclick="filterTrend(this,'packaging')">Packaging</button>
+        <button class="fbtn" onclick="filterTrend(this,'lifestyle')">Lifestyle</button>
+      </div>
+      <div id="trend-list">
+        <div class="tr" data-cat="wellness"><div class="tr-rank">1</div><div class="tr-info"><div class="tr-name">Gut health</div><div class="tr-cat">Wellness · 34% growth this week</div></div><div class="bar-wrap"><div class="bar" style="width:92%"></div></div><div class="tr-score">92</div><div class="badge b-rising">Rising</div></div>
+        <div class="tr" data-cat="ingredients"><div class="tr-rank">2</div><div class="tr-info"><div class="tr-name">Clean label</div><div class="tr-cat">Ingredients · 18% growth</div></div><div class="bar-wrap"><div class="bar" style="width:78%"></div></div><div class="tr-score">78</div><div class="badge b-peak">Peaking</div></div>
+        <div class="tr" data-cat="packaging"><div class="tr-rank">3</div><div class="tr-info"><div class="tr-name">Travel-size packaging</div><div class="tr-cat">Packaging · New signal</div></div><div class="bar-wrap"><div class="bar" style="width:65%"></div></div><div class="tr-score">65</div><div class="badge b-new">New</div></div>
+        <div class="tr" data-cat="wellness"><div class="tr-rank">4</div><div class="tr-info"><div class="tr-name">Microbiome care</div><div class="tr-cat">Wellness · 22% growth</div></div><div class="bar-wrap"><div class="bar" style="width:58%"></div></div><div class="tr-score">58</div><div class="badge b-rising">Rising</div></div>
+        <div class="tr" data-cat="lifestyle"><div class="tr-rank">5</div><div class="tr-info"><div class="tr-name">Slow beauty</div><div class="tr-cat">Lifestyle · 12% growth</div></div><div class="bar-wrap"><div class="bar" style="width:48%"></div></div><div class="tr-score">48</div><div class="badge b-rising">Rising</div></div>
+        <div class="tr" data-cat="ingredients"><div class="tr-rank">6</div><div class="tr-info"><div class="tr-name">Adaptogens</div><div class="tr-cat">Ingredients · 9% growth</div></div><div class="bar-wrap"><div class="bar" style="width:41%"></div></div><div class="tr-score">41</div><div class="badge b-new">New</div></div>
+      </div>
+    </div>
+    <div class="ask-row"><a class="ask-btn" id="trends-ask-btn" href="#" target="_blank">Ask Claude for trend recommendations ↗</a></div>
+  </div>
+
+  <!-- COMPETITORS -->
+  <div id="tab-competitors" class="view">
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Share of voice over time</div>
+        <div class="chart-wrap">
+          <svg class="spark" viewBox="0 0 320 140" preserveAspectRatio="none">
+            <polyline points="0,90 53,85 107,88 160,80 213,75 267,72 320,68" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="0,70 53,65 107,62 160,60 213,58 267,54 320,50" fill="none" stroke="#378ADD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="0,110 53,112 107,108 160,105 213,107 267,109 320,106" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4,3"/>
+            <polyline points="0,115 53,118 107,116 160,114 213,118 267,120 320,116" fill="none" stroke="#E24B4A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4,3"/>
+            <text x="6" y="136" font-size="10" fill="#888780">Jan</text>
+            <text x="62" y="136" font-size="10" fill="#888780">Feb</text>
+            <text x="118" y="136" font-size="10" fill="#888780">Mar</text>
+          </svg>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;">
+          <span style="font-size:11px;color:#1D9E75;">— Natura</span>
+          <span style="font-size:11px;color:#378ADD;">— NatureFresh</span>
+          <span style="font-size:11px;color:#EF9F27;">-- Glow &amp; Co</span>
+          <span style="font-size:11px;color:#E24B4A;">-- PureEarth</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Sentiment breakdown</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+          <div><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:4px;"><span>Natura</span><span style="color:#1D9E75;font-weight:500;">74%</span></div><div style="height:6px;background:var(--bg2);border-radius:3px;"><div style="width:74%;height:100%;background:#1D9E75;border-radius:3px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:4px;"><span>NatureFresh</span><span style="color:#378ADD;font-weight:500;">81%</span></div><div style="height:6px;background:var(--bg2);border-radius:3px;"><div style="width:81%;height:100%;background:#378ADD;border-radius:3px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:4px;"><span>Glow &amp; Co</span><span style="font-weight:500;">68%</span></div><div style="height:6px;background:var(--bg2);border-radius:3px;"><div style="width:68%;height:100%;background:#888780;border-radius:3px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:4px;"><span>PureEarth</span><span style="color:#E24B4A;font-weight:500;">52%</span></div><div style="height:6px;background:var(--bg2);border-radius:3px;"><div style="width:52%;height:100%;background:#E24B4A;border-radius:3px;"></div></div></div>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);font-size:12px;color:var(--t2);">NatureFresh leads on sentiment. Key driver: new sustainability packaging campaign.</div>
+      </div>
+    </div>
+    <div class="ask-row"><a class="ask-btn" id="comp-ask-btn" href="#" target="_blank">Ask Claude for competitive strategy ↗</a></div>
+  </div>
+
+  <!-- WHITESPACE -->
+  <div id="tab-whitespace" class="view">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Opportunity whitespace map <span class="card-sub">High demand, low brand presence</span></div>
+      <div class="opp-grid">
+        <div class="opp hot"><div class="opp-badge ob-h">High</div><div class="opp-label">Gut health skincare</div><div class="opp-demand">Demand: 92 · Brand gap: Large</div></div>
+        <div class="opp hot"><div class="opp-badge ob-h">High</div><div class="opp-label">Travel-size wellness</div><div class="opp-demand">Demand: 65 · Brand gap: Large</div></div>
+        <div class="opp warm"><div class="opp-badge ob-m">Medium</div><div class="opp-label">Adaptogen serums</div><div class="opp-demand">Demand: 41 · Brand gap: Medium</div></div>
+        <div class="opp warm"><div class="opp-badge ob-m">Medium</div><div class="opp-label">Microbiome body wash</div><div class="opp-demand">Demand: 58 · Brand gap: Medium</div></div>
+        <div class="opp cold"><div class="opp-badge ob-l">Low</div><div class="opp-label">Refillable packaging</div><div class="opp-demand">Demand: 33 · Brand gap: Small</div></div>
+        <div class="opp cold"><div class="opp-badge ob-l">Low</div><div class="opp-label">Mood-based fragrance</div><div class="opp-demand">Demand: 28 · Brand gap: Small</div></div>
+      </div>
+    </div>
+    <div class="ask-row"><a class="ask-btn" id="ws-ask-btn" href="#" target="_blank">Ask Claude to prioritize opportunities ↗</a></div>
+  </div>
+
+  <!-- DIGEST -->
+  <div id="tab-digest" class="view">
+    <div class="card">
+      <div class="card-title">Weekly digest <span class="card-sub">5 signals curated for Natura</span></div>
+      <div class="di"><div class="di-meta"><span class="di-type dt-trend">Trend</span><span class="di-time">2 days ago</span></div><div class="di-text">Gut health searches in personal care grew 34% this week, now trending across 18–35 demographic. No major brand has a dedicated product line yet.</div></div>
+      <div class="di"><div class="di-meta"><span class="di-type dt-comp">Competitor</span><span class="di-time">3 days ago</span></div><div class="di-text">NatureFresh launched a sustainability-focused packaging campaign that's driven a 4pt share of voice gain. Campaign is resonating strongly on Instagram and Reddit.</div></div>
+      <div class="di"><div class="di-meta"><span class="di-type dt-cons">Consumer</span><span class="di-time">4 days ago</span></div><div class="di-text">Reddit thread in r/SkincareAddiction: Users frustrated that "clean label" brands don't clearly explain ingredient sourcing. Natura has an opportunity to lead on transparency.</div></div>
+      <div class="di"><div class="di-meta"><span class="di-type dt-trend">Trend</span><span class="di-time">5 days ago</span></div><div class="di-text">Travel-size format queries up 2.1× among 18–28 age group. Highest traction in airport retail and D2C gifting searches.</div></div>
+      <div class="di"><div class="di-meta"><span class="di-type dt-risk">Risk</span><span class="di-time">6 days ago</span></div><div class="di-text">Minor negative spike in Natura social mentions around delayed shipping for online orders. Sentiment recovered, but worth watching over next 2 weeks.</div></div>
+    </div>
+    <div class="ask-row"><a class="ask-btn" id="digest-ask-btn" href="#" target="_blank">Prepare for Monday's meeting ↗</a></div>
+  </div>
+</div>
+
+<script>
+var CTX = [
+  "Brand: Natura (personal care, CPG industry). Week: Mar 17, 2026.",
+  "Share of voice: Natura 28% (down 1pt this week), NatureFresh 32% (up 4pts), Glow & Co 21%, PureEarth 19%.",
+  "Sentiment scores: Natura 74% (+2pts), NatureFresh 81%, Glow & Co 68%, PureEarth 52%.",
+  "Top trends this week — Gut health: score 92, Rising, +34% growth. Clean label: 78, Peaking, +18%. Travel-size packaging: 65, New signal. Microbiome care: 58, Rising, +22%. Slow beauty: 48, Rising. Adaptogens: 41, New.",
+  "Whitespace opportunities: Gut health skincare (demand 92, large brand gap, HIGH priority). Travel-size wellness (demand 65, large gap, HIGH). Microbiome body wash (demand 58, medium gap). Adaptogen serums (demand 41, medium gap). Refillable packaging (demand 33, small gap, LOW). Mood-based fragrance (demand 28, small gap, LOW).",
+  "Weekly signals: No competitor has launched in gut health skincare yet. NatureFresh sustainability packaging campaign is driving their SoV gain. Consumers frustrated by lack of ingredient transparency in clean label brands — Natura can lead here. Travel-size queries up 2.1x in 18-28 age group, strongest in airport retail and D2C gifting. Minor shipping-related sentiment dip for Natura this week — recovered but monitor.",
+  "Decision nudges: Gut health up 34% with zero competitor response. NatureFresh gaining fast on SoV. Travel-size packaging is an untapped white space."
+].join(" ");
+
+function buildUrl(question) {
+  var prompt = "I am a brand manager at Natura, a personal care CPG brand. Here is my BrandPulse dashboard data for the week of Mar 17, 2026:\n\n" + CTX + "\n\nBased specifically on this data, " + question;
+  return "https://claude.ai/new?q=" + encodeURIComponent(prompt);
+}
+
+document.getElementById("trends-ask-btn").href = buildUrl(
+  "which of these trends should Natura act on first? For the top 2-3, suggest a specific product innovation or marketing action Natura could realistically execute within the next quarter."
+);
+document.getElementById("comp-ask-btn").href = buildUrl(
+  "NatureFresh is beating Natura on both share of voice (32% vs 28%) and sentiment (81 vs 74). What specific actions should Natura take in the next 4-6 weeks to close this gap? Be specific to the data above."
+);
+document.getElementById("ws-ask-btn").href = buildUrl(
+  "which whitespace opportunity should Natura prioritize first and why? What would an MVP product or campaign look like to capture that opportunity within 90 days?"
+);
+document.getElementById("digest-ask-btn").href = buildUrl(
+  "what are the 3 most important actions I should bring to Monday's strategy meeting? Format as: Action | Why it matters now | Recommended next step."
+);
+
+function switchTab(name) {
+  var tabs = ['overview','trends','competitors','whitespace','digest'];
+  document.querySelectorAll('.nav-item').forEach(function(el, i) {
+    el.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.view').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function filterTrend(btn, cat) {
+  document.querySelectorAll('.fbtn').forEach(function(b) { b.classList.remove('on'); });
+  btn.classList.add('on');
+  document.querySelectorAll('#trend-list .tr').forEach(function(item) {
+    item.style.display = (cat === 'all' || item.dataset.cat === cat) ? 'flex' : 'none';
+  });
+}
+</script>
+</body>
+</html>
